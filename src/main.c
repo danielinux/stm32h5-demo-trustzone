@@ -25,7 +25,6 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include "system.h"
 #include "hal.h"
 #include "wolfboot/wolfboot.h"
 
