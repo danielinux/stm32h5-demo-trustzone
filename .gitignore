@@ -1,0 +1,204 @@
+# Prerequisites
+*.d
+
+# Object files
+*.o
+*.ko
+*.obj
+*.elf
+
+# Linker output
+*.ilk
+*.map
+*.exp
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Libraries
+*.lib
+*.a
+*.la
+*.lo
+
+# Shared objects (inc. Windows DLLs)
+*.dll
+*.so
+*.so.*
+*.dylib
+
+# Executables
+*.exe
+*.out
+*.app
+*.i*86
+*.x86_64
+*.hex
+*.rom
+*.bin
+*.efi
+
+# Debug files
+*.dSYM/
+*.su
+*.idb
+*.pdb
+*.gdb
+
+# automatically generated keys
+*.der
+*.pem
+*.sig
+
+# automatically generated source files
+src/keystore.c
+src/ed25519_pub_key.c
+src/ed448_pub_key.c
+src/ecc256_pub_key.c
+src/ecc384_pub_key.c
+src/ecc512_pub_key.c
+src/rsa2048_pub_key.c
+src/rsa4096_pub_key.c
+
+# keygen binaries
+tools/keytools/sign
+tools/keytools/sign.exe
+tools/keytools/keygen
+tools/keytools/keygen.exe
+tools/keytools/x64
+tools/keytools/Debug
+tools/keytools/Release
+tools/keytools/otp/otp-keystore-primer
+
+# delta binaries
+tools/delta/bmdiff
+tools/delta/bmpatch
+
+# Vim swap files
+.*.swp
+
+# emacs backups
+**~
+
+# tags etc.
+cscope.out
+tags
+
+# Generated files
+.wolfboot-config
+include/target.h
+.wolfboot-arch-offset
+.wolfboot-offset
+.wolfboot-partition-size
+.bootloader-partition-size
+MPLabX/wolfBoot-SAME51.X/.generated_files/
+
+# Test tools
+tools/check_config/check_config
+tools/test-expect-version/test-expect-version
+tools/test-update-server/server
+tools/uart-flash-server/ufserver
+tools/unit-tests/unit-parser
+tools/bin-assemble/bin-assemble
+tools/elf-parser/elf-parser
+tools/fdt-parser/fdt-parser
+tools/tpm/rot
+tools/tpm/pcr_read
+tools/tpm/pcr_reset
+tools/tpm/pcr_extend
+tools/tpm/policy_create
+tools/tpm/policy_sign
+config/*.ld
+
+# Generated confiuguration file
+.config
+.vs
+*.filters
+*.user
+
+# IAR files not under version control
+IDE/IAR/settings
+IDE/IAR/*.ewt
+IDE/IAR/Debug
+IDE/IAR/Release
+
+# Simulated Flash files
+*.dd
+
+# CMake
+build/
+CMakeFiles/
+CMakeCache.txt
+
+# Stage 1
+stage1/loader_stage1.ld
+hal/x86_fsp_tgl_stage1.ld
+hal/x86_fsp_qemu_stage1.ld
+
+debug/lauterbach
+
+#cland cache
+.cache/*
+
+#gcov files
+*.gcov
+*.gcda
+*.gcno
+coverage.*
+IDE/MPLAB/test-app/test-usb-updater.same51.X/dist/
+IDE/MPLAB/test-app/test-usb-updater.same51.X/.generated_files/
+IDE/MPLAB/bootloader/wolfboot-same51.dualbank.X/dist/
+IDE/MPLAB/bootloader/wolfboot-same51.dualbank.X/.generated_files/
+
+# IDE Renesas e2Studio generated
+IDE/Renesas/e2studio/RZN2L/app_RZ/Debug
+IDE/Renesas/e2studio/RZN2L/app_RZ/rzn
+IDE/Renesas/e2studio/RZN2L/app_RZ/rzn_gen
+IDE/Renesas/e2studio/RZN2L/app_RZ/rzn_cfg
+IDE/Renesas/e2studio/RZN2L/app_RZ/.settings
+IDE/Renesas/e2studio/RZN2L/app_RZ/.api_xml
+IDE/Renesas/e2studio/RZN2L/app_RZ/.secure_azone
+IDE/Renesas/e2studio/RZN2L/app_RZ/.secure_xml
+IDE/Renesas/e2studio/RZN2L/app_RZ/configuration.xml
+IDE/Renesas/e2studio/RZN2L/app_RZ/rzn_cfg.txt
+IDE/Release/e2Studio/RZN2L/app_RZ/JLinkLog.log
+IDE/Renesas/e2studio/RZN2L/flash_app/Debug
+IDE/Renesas/e2studio/RZN2L/flash_app/rzn
+IDE/Renesas/e2studio/RZN2L/flash_app/rzn_gen
+IDE/Renesas/e2studio/RZN2L/flash_app/rzn_cfg
+IDE/Renesas/e2studio/RZN2L/flash_app/.settings
+IDE/Renesas/e2studio/RZN2L/flash_app/.api_xml
+IDE/Renesas/e2studio/RZN2L/flash_app/.secure_azone
+IDE/Renesas/e2studio/RZN2L/flash_app/.secure_xml
+IDE/Renesas/e2studio/RZN2L/flash_app/configuration.xml
+IDE/Renesas/e2studio/RZN2L/flash_app/rzn_cfg.txt
+IDE/Release/e2Studio/RZN2L/flash_app/JLinkLog.log
+IDE/Renesas/e2studio/RZN2L/flash_app/flash_simple_loader.elf.jlink
+IDE/Renesas/e2studio/RZN2L/flash_app/flash_simple_loader.elf.launch
+IDE/Renesas/e2studio/RZN2L/wolfboot/Debug
+IDE/Renesas/e2studio/RZN2L/wolfboot/rzn
+IDE/Renesas/e2studio/RZN2L/wolfboot/rzn_gen
+IDE/Renesas/e2studio/RZN2L/wolfboot/rzn_cfg
+IDE/Renesas/e2studio/RZN2L/wolfboot/.settings
+IDE/Renesas/e2studio/RZN2L/wolfboot/.api_xml
+IDE/Renesas/e2studio/RZN2L/wolfboot/.secure_azone
+IDE/Renesas/e2studio/RZN2L/wolfboot/.secure_xml
+IDE/Renesas/e2studio/RZN2L/wolfboot/configuration.xml
+IDE/Renesas/e2studio/RZN2L/wolfboot/rzn_cfg.txt
+IDE/Release/e2Studio/RZN2L/wolfboot/JLinkLog.log
+IDE/Renesas/e2studio/RZN2L/wolfboot/wolfBoot_RZ.elf.jlink
+IDE/Renesas/e2studio/RZN2L/wolfboot/wolfBoot_RZ.elf.launch
+IDE/Renesas/e2studio/RZN2L/wolfboot/.cache/*
+IDE/Renesas/e2studio/RZN2L/flash_app/.cache/*
+IDE/Release/e2studio/RZN2L/app_RZ/.cache/*
+
+
+tpm_seal_key.key
+
+# FSP downloaded headers
+include/x86/fsp/FspUpd.h
+include/x86/fsp/FspmUpd.h
+include/x86/fsp/FspsUpd.h
+include/x86/fsp/FsptUpd.h
+include/x86/fsp/MemInfoHob.h
