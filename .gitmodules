@@ -1,3 +1,9 @@
 [submodule "wolfboot"]
 	path = wolfboot
 	url = https://github.com/wolfssl/wolfboot.git
+[submodule "stm32h5xx_hal_driver"]
+	path = stm32h5xx_hal_driver
+	url = https://github.com/STMicroelectronics/stm32h5xx_hal_driver.git
+[submodule "picotcp"]
+	path = picotcp
+	url = https://github.com/virtualsquare/picotcp.git

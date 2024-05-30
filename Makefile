@@ -1,4 +1,4 @@
--include ./src/wcs/pkcs11.mk
+include ./src/wcs/pkcs11.mk
 
 OBJS:=src/main.o
 CFLAGS=-g -ggdb -O0
@@ -6,8 +6,15 @@ CFLAGS+=-mcpu=cortex-m33 -ffunction-sections -fdata-sections -fno-common -mcmse
 LDFLAGS+=-mcpu=cortex-m33 
 LDFLAGS+=-Wl,-gc-sections -Wl,-Map=image.map
 CFLAGS+=-Isrc/wcs
+C3FLAGS+=-Istm32h5xx_hal_driver/Inc
 CFLAGS+=-Iwolfboot/include
 CFLAGS+=-Iwolfboot/lib/wolfssl
+CFLAGS+=-I.
+CFLAGS+=-Istm32h5xx_hal_driver/Inc
+CFLAGS+=-ICMSIS/Include
+CFLAGS+=-ICMSIS/Device/ST/STM32H5xx/Include
+
+CFLAGS+=-DSTM32H563xx
 
 CFLAGS+=-DWOLFSSL_USER_SETTINGS -DWOLFBOOT_PKCS11_APP -DSECURE_PKCS11
 CFLAGS+=-DWOLFBOOT_SECURE_CALLS -Wstack-usage=12944 -DWOLFCRYPT_SECURE_MODE
@@ -40,6 +47,9 @@ OBJS+=./src/wcs/wc_port.o
 
 # NSC API objects
 OBJS+=./wolfboot/src/wc_secure_calls.o
+
+# Ethernet drivers
+OBJS+=./stm32h5xx_hal_driver/Src/stm32h5xx_hal_eth.o
 
 all: wolfboot/wolfboot.bin application_v1_signed.bin wolfboot/tools/keytools/otp/otp-keystore-primer.bin
 	mkdir -p build
