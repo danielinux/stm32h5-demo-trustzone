@@ -27,6 +27,9 @@
 #include <string.h>
 #include "hal.h"
 #include "wolfboot/wolfboot.h"
+#include "FreeRTOS.h"
+#include "task.h"
+#include "semphr.h"
 
 #ifdef SECURE_PKCS11
 #include "wcs/user_settings.h"
@@ -131,7 +134,7 @@ static uint8_t my_pubkey[200];
 extern int ecdsa_sign_verify(int devId);
 
 
-void main(void)
+void MainTask(void *arg)
 {
     int ret;
     uint32_t rand;
@@ -149,6 +152,7 @@ void main(void)
     char UserPin[] = "ABCDEF0123456789";
     char SoPinName[] = "SO-PIN";
 #endif
+    (void)arg;
     
     /* Turn on boot LED */
     boot_led_on();
@@ -220,3 +224,77 @@ void main(void)
 
     /* Never reached */
 }
+
+extern unsigned int _stored_data;
+extern unsigned int _start_data;
+extern unsigned int _end_data;
+extern unsigned int _start_bss;
+extern unsigned int _end_bss;
+extern unsigned int _end_stack;
+extern unsigned int _start_heap;
+
+static volatile struct pico_socket *cli = NULL;
+static SemaphoreHandle_t *picotcp_started;
+static SemaphoreHandle_t *picotcp_rx_data;
+
+static void reboot(void)
+{
+#   define SCB_AIRCR         (*((volatile uint32_t *)(0xE000ED0C)))
+#   define AIRCR_VECTKEY     (0x05FA0000)
+#   define SYSRESET          (1 << 2)
+    SCB_AIRCR = AIRCR_VECTKEY | SYSRESET;
+}
+
+
+static __attribute__ ((used,section(".noinit.$SRAM_LOWER_Heap5"))) uint8_t heap_sram_lower[16*1024]; /* placed in in no_init section inside SRAM_LOWER */
+static __attribute__ ((used,section(".noinit_Heap5"))) uint8_t heap_sram_upper[128*1024]; /* placed in in no_init section inside SRAM_UPPER */
+
+static HeapRegion_t xHeapRegions[] =
+{
+  { &heap_sram_lower[0], sizeof(heap_sram_lower) },
+  { &heap_sram_upper[0], sizeof(heap_sram_upper)},
+  { NULL, 0 } //  << Terminates the array.
+};
+
+
+int main(void) {
+    vPortDefineHeapRegions(xHeapRegions); // Pass the array into vPortDefineHeapRegions(). Must be called first!
+    picotcp_started = xSemaphoreCreateBinary();
+    picotcp_rx_data = xSemaphoreCreateBinary();
+
+
+#if 0
+    if (xTaskCreate(
+        PicoTask,  /* pointer to the task */
+        "picoTCP", /* task name for kernel awareness debugging */
+        400, /* task stack size */
+        (void*)NULL, /* optional task startup argument */
+        tskIDLE_PRIORITY,  /* initial priority */
+        (xTaskHandle*)NULL /* optional task handle to create */
+      ) != pdPASS) {
+       for(;;){} /* error! probably out of memory */
+    }
+#endif
+    if (xTaskCreate(
+        MainTask,  /* pointer to the task */
+        "Main", /* task name for kernel awareness debugging */
+        1200, /* task stack size */
+        (void*)NULL, /* optional task startup argument */
+        tskIDLE_PRIORITY,  /* initial priority */
+        (xTaskHandle*)NULL /* optional task handle to create */
+      ) != pdPASS) {
+       for(;;){} /* error! probably out of memory */
+    }
+
+    vTaskStartScheduler();
+    while(1) {
+    }
+    return 0 ;
+}
+
+void SystemInit(void)
+{
+}
+
+
+

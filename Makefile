@@ -14,6 +14,9 @@ CFLAGS+=-Istm32h5xx_hal_driver/Inc
 CFLAGS+=-ICMSIS/Include
 CFLAGS+=-ICMSIS/Device/ST/STM32H5xx/Include
 
+# FPU
+CFLAGS+=-mfloat-abi=hard -mfpu=fpv4-sp-d16
+
 CFLAGS+=-DSTM32H563xx
 
 CFLAGS+=-DWOLFSSL_USER_SETTINGS -DWOLFBOOT_PKCS11_APP -DSECURE_PKCS11
@@ -51,6 +54,31 @@ OBJS+=./wolfboot/src/wc_secure_calls.o
 # Ethernet drivers
 OBJS+=./stm32h5xx_hal_driver/Src/stm32h5xx_hal_eth.o
 
+
+# picoTCP
+#
+#
+
+
+
+# FreeRTOS
+#
+#FREERTOS_PORT:=./freertos/portable/GCC/ARM_CM33/non_secure
+FREERTOS_PORT:=./freertos/portable/GCC/ARM_CM33_NTZ/non_secure
+CFLAGS+=-Ifreertos/include -Ifreertos/portable -I$(FREERTOS_PORT)
+CFLAGS+=-Ifreertos/portable/GCC/ARM_CM33/secure
+OBJS+= \
+  freertos/croutine.o \
+  freertos/event_groups.o \
+  freertos/list.o \
+  freertos/queue.o \
+  freertos/stream_buffer.o \
+  freertos/tasks.o \
+  freertos/timers.o \
+  freertos/portable/MemMang/heap_5.o 
+
+OBJS+=$(FREERTOS_PORT)/port.o 
+
 all: wolfboot/wolfboot.bin application_v1_signed.bin wolfboot/tools/keytools/otp/otp-keystore-primer.bin
 	mkdir -p build
 	cp wolfboot/wolfboot.bin build/
@@ -61,6 +89,8 @@ wolfboot/tools/keytools/otp/otp-keystore-primer.bin: wolfboot/wolfboot.bin
 	make -C wolfboot otp
 
 wolfboot/wolfboot.bin: wolfboot/.config
+	make -C wolfboot keytools
+	make -C wolfboot src/keystore.c
 	make -C wolfboot wolfboot.bin
 
 %.o:%.c
@@ -81,5 +111,6 @@ application.elf: $(OBJS)
 clean:
 	rm -rf build
 	rm -f src/*.o application.elf application.bin application_v1_signed.bin
+	rm -f freertos/*.o $(FREERTOS_PORT)/*.o
 	rm -f *.map
 	make -C wolfboot clean

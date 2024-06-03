@@ -7,3 +7,6 @@
 [submodule "picotcp"]
 	path = picotcp
 	url = https://github.com/virtualsquare/picotcp.git
+[submodule "freertos"]
+	path = freertos
+	url = https://github.com/FreeRTOS/FreeRTOS-Kernel.git
