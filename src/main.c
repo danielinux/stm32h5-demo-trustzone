@@ -25,13 +25,18 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
-#include "hal.h"
+//#include "hal.h"
 #include "wolfboot/wolfboot.h"
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
 #include "pico_stack.h"
 #include "pico_socket.h"
+
+#include "stm32h5xx_hal_eth.h"
+#include "stm32h5xx_hal_gpio.h"
+#include "stm32h5xx_hal_dma.h"
+#include "stm32h5xx_hal_rcc.h"
 
 #ifdef SECURE_PKCS11
 #include "wcs/user_settings.h"
@@ -46,11 +51,6 @@ extern const CK_FUNCTION_LIST wolfpkcs11nsFunctionList;
 #define LED_USR_PIN  (0) /* PB0 - Nucleo - Green Led */
 #define LED_EXTRA_PIN  (4) /* PF4 - Nucleo - Orange Led */
 
-/*Non-Secure */
-#define RCC_BASE            (0x44020C00)   /* RM0481 - Table 3 */
-#define GPIOG_BASE 0x42021800
-#define GPIOB_BASE 0x42020400
-#define GPIOF_BASE 0x42021400
 
 
 #define GPIOG_MODER (*(volatile uint32_t *)(GPIOG_BASE + 0x00))
@@ -69,6 +69,13 @@ extern const CK_FUNCTION_LIST wolfpkcs11nsFunctionList;
 #define GPIOG_AHB2ENR1_CLOCK_ER (1 << 6)
 #define GPIOF_AHB2ENR1_CLOCK_ER (1 << 5)
 #define GPIOB_AHB2ENR1_CLOCK_ER (1 << 1)
+
+static struct pico_stack *S;
+ETH_TxPacketConfig TxConfig;
+ETH_DMADescTypeDef  DMARxDscrTab[ETH_RX_DESC_CNT]; /* Ethernet Rx DMA Descriptors */
+ETH_DMADescTypeDef  DMATxDscrTab[ETH_TX_DESC_CNT]; /* Ethernet Tx DMA Descriptors */
+
+ETH_HandleTypeDef heth;
 
 static void boot_led_on(void)
 {
@@ -247,12 +254,120 @@ static void reboot(void)
 }
 
 /* TCP/IP: Ethernet initialization */
+static uint8_t MACAddr[6] = {0x00, 0x80, 0xE1, 0x00, 0x01, 0x02};
+
+static int eth_mac_init(void)
+{
+    heth.Instance = ETH;
+    heth.Init.MACAddr = &MACAddr[0];
+    heth.Init.MediaInterface = HAL_ETH_RMII_MODE;
+    heth.Init.TxDesc = DMATxDscrTab;
+    heth.Init.RxDesc = DMARxDscrTab;
+    heth.Init.RxBuffLen = 1524;
+    if (HAL_ETH_Init(&heth) != HAL_OK)
+        return -1;
+
+    memset(&TxConfig, 0 , sizeof(ETH_TxPacketConfig));
+    TxConfig.Attributes = ETH_TX_PACKETS_FEATURES_CSUM | ETH_TX_PACKETS_FEATURES_CRCPAD;
+    TxConfig.ChecksumCtrl = ETH_CHECKSUM_IPHDR_PAYLOAD_INSERT_PHDR_CALC;
+    TxConfig.CRCPadCtrl = ETH_CRC_PAD_INSERT;
+    return 0;
+}
+
+static void eth_gpio_init(void)
+{
+    GPIO_InitTypeDef GPIO_InitStruct = {0};
+    /* GPIO Ports Clock Enable */
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+
+    __HAL_RCC_ETH_CLK_ENABLE();
+    __HAL_RCC_ETHTX_CLK_ENABLE();
+    __HAL_RCC_ETHRX_CLK_ENABLE();
+
+    __HAL_RCC_GPIOC_CLK_ENABLE();
+    __HAL_RCC_GPIOA_CLK_ENABLE();
+    __HAL_RCC_GPIOB_CLK_ENABLE();
+    /**ETH GPIO Configuration
+      PC1     ------> ETH_MDC
+      PA1     ------> ETH_REF_CLK
+      PA2     ------> ETH_MDIO
+      PA5     ------> ETH_TX_EN
+      PA7     ------> ETH_CRS_DV
+      PC4     ------> ETH_RXD0
+      PC5     ------> ETH_RXD1
+      PB12     ------> ETH_TXD0
+      PB15     ------> ETH_TXD1
+      */
+    GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_4|GPIO_PIN_5;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
+    HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = GPIO_PIN_1|GPIO_PIN_2|GPIO_PIN_5|GPIO_PIN_7;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
+    HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = GPIO_PIN_12|GPIO_PIN_15;
+    GPIO_InitStruct.Mode = GPIO_MODE_AF_PP;
+    GPIO_InitStruct.Pull = GPIO_NOPULL;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_HIGH;
+    GPIO_InitStruct.Alternate = GPIO_AF11_ETH;
+    HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+}
+
+struct ethdev {
+    struct pico_device dev;
+    void *base; 
+};
+
+static int ethernet_poll(struct pico_device *dev, int loop_score)
+{
+    struct pico_device_enet *enet = (struct pico_device_enet *)dev;
+    uint32_t size;
+    while(loop_score > 0) {
+        //pico_stack_recv(dev, frame, size);
+        loop_score--;
+    }
+    return loop_score;
+}
+
+static int ethernet_send(struct pico_device *dev, void *buf, int len)
+{
+    struct pico_device_enet *enet = (struct pico_device_enet *)dev;
+    return 0;
+}
+
+static void ethernet_destroy(struct pico_device *dev)
+{
+
+}
 
 struct pico_device *pico_eth_create(const char *name)
 {
+    struct ethdev *enet = PICO_ZALLOC(sizeof(struct ethdev));
+    
+    if( 0 != pico_device_init(S, (struct pico_device *)enet, name, MACAddr)) {
+        dbg("Eth init failed.\n");
+        ethernet_destroy((struct pico_device *)enet);
+        return NULL;
+    }
+    enet->base = ETH;
+    enet->dev.send = ethernet_send;
+    enet->dev.poll = ethernet_poll;
+    enet->dev.destroy = ethernet_destroy;
 
-
-    return NULL;
+    eth_gpio_init();
+    if (eth_mac_init() < 0) {
+        return NULL;
+    }
+    return (struct pico_device *)enet;
 }
 
 
@@ -281,7 +396,6 @@ void PicoTask(void *pv) {
     struct pico_ip4 addr, mask, gw, any;
     TickType_t xLastWakeTime;
     const TickType_t xFrequency = 5;
-    struct pico_stack *S;
     uint32_t ad4, nm4, gw4;
     ad4 = addr.addr;
     nm4 = mask.addr;
