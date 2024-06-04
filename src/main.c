@@ -352,13 +352,19 @@ static void ethernet_destroy(struct pico_device *dev)
 struct pico_device *pico_eth_create(const char *name)
 {
     struct ethdev *enet = PICO_ZALLOC(sizeof(struct ethdev));
+    uint32_t duplex, speed;
+
+    duplex = ETH_FULLDUPLEX_MODE;
+    speed = ETH_SPEED_100M;
+
+    ETH_MACConfigTypeDef MACConf = {0};
     
     if( 0 != pico_device_init(S, (struct pico_device *)enet, name, MACAddr)) {
         dbg("Eth init failed.\n");
         ethernet_destroy((struct pico_device *)enet);
         return NULL;
     }
-    enet->base = ETH;
+    enet->base = &heth;
     enet->dev.send = ethernet_send;
     enet->dev.poll = ethernet_poll;
     enet->dev.destroy = ethernet_destroy;
@@ -367,6 +373,11 @@ struct pico_device *pico_eth_create(const char *name)
     if (eth_mac_init() < 0) {
         return NULL;
     }
+    HAL_ETH_GetMACConfig(&heth, &MACConf);
+    MACConf.DuplexMode = duplex;
+    MACConf.Speed = speed;
+    HAL_ETH_SetMACConfig(&heth, &MACConf);
+    HAL_ETH_Start_IT(&heth);
     return (struct pico_device *)enet;
 }
 
@@ -422,25 +433,9 @@ void PicoTask(void *pv) {
 }
 
 
-/* Heap for tasks */
-static __attribute__ ((used,section(".noinit.$SRAM_LOWER_Heap5"))) uint8_t heap_sram_lower[16*1024]; /* placed in in no_init section inside SRAM_LOWER */
-static __attribute__ ((used,section(".noinit_Heap5"))) uint8_t heap_sram_upper[128*1024]; /* placed in in no_init section inside SRAM_UPPER */
-
-static HeapRegion_t xHeapRegions[] =
-{
-  { &heap_sram_lower[0], sizeof(heap_sram_lower) },
-  { &heap_sram_upper[0], sizeof(heap_sram_upper)},
-  { NULL, 0 } //  << Terminates the array.
-};
-
-int main(void) {
-
-    /* Use the defined array for tasks' heap. */
-    vPortDefineHeapRegions(xHeapRegions);
+void main(void) {
     picotcp_started = xSemaphoreCreateBinary();
     picotcp_rx_data = xSemaphoreCreateBinary();
-
-
     if (xTaskCreate(
         PicoTask,  /* pointer to the task */
         "picoTCP", /* task name for kernel awareness debugging */
@@ -467,10 +462,4 @@ int main(void) {
     }
     return 0 ;
 }
-
-void SystemInit(void)
-{
-}
-
-
 

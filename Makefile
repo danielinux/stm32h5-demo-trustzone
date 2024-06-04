@@ -1,6 +1,7 @@
 include ./src/wcs/pkcs11.mk
 
 OBJS:=src/main.o
+OBJS+=src/startup_arm.o
 CFLAGS=-g -ggdb -O0
 CFLAGS+=-mcpu=cortex-m33 -ffunction-sections -fdata-sections -fno-common -mcmse
 LDFLAGS+=-mcpu=cortex-m33
@@ -52,7 +53,15 @@ OBJS+=./src/wcs/wc_port.o
 OBJS+=./wolfboot/src/wc_secure_calls.o
 
 # Ethernet drivers
+OBJS+=./stm32h5xx_hal_driver/Src/stm32h5xx_hal.o
 OBJS+=./stm32h5xx_hal_driver/Src/stm32h5xx_hal_eth.o
+OBJS+=./stm32h5xx_hal_driver/Src/stm32h5xx_hal_eth_ex.o
+OBJS+=./stm32h5xx_hal_driver/Src/stm32h5xx_hal_gpio.o
+OBJS+=./stm32h5xx_hal_driver/Src/stm32h5xx_hal_dma.o
+OBJS+=./stm32h5xx_hal_driver/Src/stm32h5xx_hal_rcc.o
+OBJS+=./stm32h5xx_hal_driver/Src/stm32h5xx_ll_rcc.o
+OBJS+=./stm32h5xx_hal_driver/Src/stm32h5xx_hal_rcc_ex.o
+OBJS+=./src/system_stm32h5xx.o
 
 
 # Default target
@@ -94,7 +103,7 @@ OBJS+= \
   freertos/stream_buffer.o \
   freertos/tasks.o \
   freertos/timers.o \
-  freertos/portable/MemMang/heap_5.o
+  freertos/portable/MemMang/heap_4.o
 
 OBJS+=$(FREERTOS_PORT)/port.o
 OBJS+=$(FREERTOS_PORT)/portasm.o
@@ -105,7 +114,8 @@ wolfboot/tools/keytools/otp/otp-keystore-primer.bin: wolfboot/wolfboot.bin
 
 wolfboot/wolfboot.bin: wolfboot/.config
 	make -C wolfboot keytools
-	make -C wolfboot src/keystore.c
+	cp demo_private_keys/lms_priv1.bin wolfboot/wolfboot_signing_private_key.der
+	cp demo_private_keys/src/keystore.c wolfboot/src/
 	make -C wolfboot wolfboot.bin
 
 %.o:%.c
