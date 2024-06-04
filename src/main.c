@@ -30,6 +30,8 @@
 #include "FreeRTOS.h"
 #include "task.h"
 #include "semphr.h"
+#include "pico_stack.h"
+#include "pico_socket.h"
 
 #ifdef SECURE_PKCS11
 #include "wcs/user_settings.h"
@@ -133,7 +135,6 @@ static uint8_t my_pubkey[200];
 
 extern int ecdsa_sign_verify(int devId);
 
-
 void MainTask(void *arg)
 {
     int ret;
@@ -153,7 +154,7 @@ void MainTask(void *arg)
     char SoPinName[] = "SO-PIN";
 #endif
     (void)arg;
-    
+
     /* Turn on boot LED */
     boot_led_on();
 
@@ -234,8 +235,8 @@ extern unsigned int _end_stack;
 extern unsigned int _start_heap;
 
 static volatile struct pico_socket *cli = NULL;
-static SemaphoreHandle_t *picotcp_started;
-static SemaphoreHandle_t *picotcp_rx_data;
+static SemaphoreHandle_t picotcp_started;
+static SemaphoreHandle_t picotcp_rx_data;
 
 static void reboot(void)
 {
@@ -245,7 +246,69 @@ static void reboot(void)
     SCB_AIRCR = AIRCR_VECTKEY | SYSRESET;
 }
 
+/* TCP/IP: Ethernet initialization */
 
+struct pico_device *pico_eth_create(const char *name)
+{
+
+
+    return NULL;
+}
+
+
+/* TCP/IP: attach pico_rand function to NCS
+ * wcs_get_random()
+ */
+
+uint32_t pico_rand(void)
+{
+    uint32_t rnd;
+    int ret;
+    ret = wcs_get_random((void *)&rnd, sizeof(uint32_t));
+    if (ret < 0) {
+        /* Panic if unable to use wcs_get_random()
+         */
+        while(1)
+            ;
+    }
+    return rnd;
+}
+
+
+/* TCP/IP main loop. */
+void PicoTask(void *pv) {
+    struct pico_device *dev = NULL;
+    struct pico_ip4 addr, mask, gw, any;
+    TickType_t xLastWakeTime;
+    const TickType_t xFrequency = 5;
+    struct pico_stack *S;
+    uint32_t ad4, nm4, gw4;
+    ad4 = addr.addr;
+    nm4 = mask.addr;
+    gw4 = gw.addr;
+    pico_string_to_ipv4("192.168.178.211", &ad4);
+    pico_string_to_ipv4("255.255.255.0", &nm4);
+    pico_string_to_ipv4("192.168.178.1", &gw4);
+    any.addr = 0;
+    pico_stack_init(&S);
+    dev = pico_eth_create("en0");
+    if (dev) {
+       pico_ipv4_link_add(S, dev, addr, mask);
+       pico_ipv4_route_add(S, any, any, gw, 1, NULL);
+       usr_led_on();
+    }
+    xSemaphoreGive(&picotcp_started);
+    pico_stack_tick(S);
+
+    xLastWakeTime = xTaskGetTickCount();
+    while(1) {
+        vTaskDelayUntil(&xLastWakeTime, xFrequency);
+        pico_stack_tick(S);
+    }
+}
+
+
+/* Heap for tasks */
 static __attribute__ ((used,section(".noinit.$SRAM_LOWER_Heap5"))) uint8_t heap_sram_lower[16*1024]; /* placed in in no_init section inside SRAM_LOWER */
 static __attribute__ ((used,section(".noinit_Heap5"))) uint8_t heap_sram_upper[128*1024]; /* placed in in no_init section inside SRAM_UPPER */
 
@@ -256,14 +319,14 @@ static HeapRegion_t xHeapRegions[] =
   { NULL, 0 } //  << Terminates the array.
 };
 
-
 int main(void) {
-    vPortDefineHeapRegions(xHeapRegions); // Pass the array into vPortDefineHeapRegions(). Must be called first!
+
+    /* Use the defined array for tasks' heap. */
+    vPortDefineHeapRegions(xHeapRegions);
     picotcp_started = xSemaphoreCreateBinary();
     picotcp_rx_data = xSemaphoreCreateBinary();
 
 
-#if 0
     if (xTaskCreate(
         PicoTask,  /* pointer to the task */
         "picoTCP", /* task name for kernel awareness debugging */
@@ -274,7 +337,6 @@ int main(void) {
       ) != pdPASS) {
        for(;;){} /* error! probably out of memory */
     }
-#endif
     if (xTaskCreate(
         MainTask,  /* pointer to the task */
         "Main", /* task name for kernel awareness debugging */

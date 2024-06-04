@@ -3,7 +3,7 @@ include ./src/wcs/pkcs11.mk
 OBJS:=src/main.o
 CFLAGS=-g -ggdb -O0
 CFLAGS+=-mcpu=cortex-m33 -ffunction-sections -fdata-sections -fno-common -mcmse
-LDFLAGS+=-mcpu=cortex-m33 
+LDFLAGS+=-mcpu=cortex-m33
 LDFLAGS+=-Wl,-gc-sections -Wl,-Map=image.map
 CFLAGS+=-Isrc/wcs
 C3FLAGS+=-Istm32h5xx_hal_driver/Inc
@@ -55,9 +55,28 @@ OBJS+=./wolfboot/src/wc_secure_calls.o
 OBJS+=./stm32h5xx_hal_driver/Src/stm32h5xx_hal_eth.o
 
 
+# Default target
+#
+all: wolfboot/wolfboot.bin application_v1_signed.bin wolfboot/tools/keytools/otp/otp-keystore-primer.bin
+	mkdir -p build
+	cp wolfboot/wolfboot.bin build/
+	mv application_v1_signed.bin build/
+	cp wolfboot/tools/keytools/otp/otp-keystore-primer.bin build/
+
 # picoTCP
 #
 #
+LIBS:=build/lib/libpicotcp.a
+OBJS+=src/picotcp.o
+CFLAGS+=-Ibuild/include -Ipicotcp/include -Ipicotcp/modules
+
+build/lib/libpicotcp.a:
+	mkdir -p build
+	make -C picotcp EXTRA_CFLAGS="-DPICO_PORT_CUSTOM $(CFLAGS) -I.. -I../freertos/include -I../freertos -I../$(FREERTOS_PORT)" \
+		ARCH=cortexm33-hardfloat CROSS_COMPILE=arm-none-eabi- RTOS=1 \
+		AODV=0 LOOP=0 PPP=0 DHCP_SERVER=0 DNS_SD=0 FRAG=0 ICMP6=0 \
+		IPV6=0 6LOWPAN=0 NAT=0 MDNS=0 MCAST=0 TFTP=0 SNTP=0 SLAACV4=0 MD5=0 \
+		DEBUG=0
 
 
 
@@ -75,15 +94,11 @@ OBJS+= \
   freertos/stream_buffer.o \
   freertos/tasks.o \
   freertos/timers.o \
-  freertos/portable/MemMang/heap_5.o 
+  freertos/portable/MemMang/heap_5.o
 
-OBJS+=$(FREERTOS_PORT)/port.o 
+OBJS+=$(FREERTOS_PORT)/port.o
+OBJS+=$(FREERTOS_PORT)/portasm.o
 
-all: wolfboot/wolfboot.bin application_v1_signed.bin wolfboot/tools/keytools/otp/otp-keystore-primer.bin
-	mkdir -p build
-	cp wolfboot/wolfboot.bin build/
-	mv application_v1_signed.bin build/
-	cp wolfboot/tools/keytools/otp/otp-keystore-primer.bin build/
 
 wolfboot/tools/keytools/otp/otp-keystore-primer.bin: wolfboot/wolfboot.bin
 	make -C wolfboot otp
@@ -105,12 +120,13 @@ application_v1_signed.bin: application.bin
 application.bin: application.elf
 	arm-none-eabi-objcopy -O binary $^ $@
 
-application.elf: $(OBJS)
-	arm-none-eabi-gcc $(CFLAGS) $(OBJS) $(LDFLAGS) -T target.ld -o $@
+application.elf: $(OBJS) $(LIBS)
+	arm-none-eabi-gcc $(CFLAGS) $(OBJS) $(LIBS) $(LDFLAGS) -T target.ld -o $@
 
 clean:
-	rm -rf build
 	rm -f src/*.o application.elf application.bin application_v1_signed.bin
 	rm -f freertos/*.o $(FREERTOS_PORT)/*.o
 	rm -f *.map
+	make -C picotcp clean
 	make -C wolfboot clean
+	rm -rf build

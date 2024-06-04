@@ -86,8 +86,8 @@ extern uint32_t SystemCoreClock;
 
 
 #define configENABLE_FPU 1
-#define configENABLE_MPU 1
-#define configENABLE_TRUSTZONE 1
+#define configENABLE_MPU 0
+#define configENABLE_TRUSTZONE 0
 
 #define configSYSTEM_CALL_STACK_SIZE 1024
 #define configMINIMAL_SECURE_STACK_SIZE 1024
