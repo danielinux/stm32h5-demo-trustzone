@@ -1,7 +1,7 @@
 MEMORY
 {
     FLASH (rx) : ORIGIN = 0x08042000, LENGTH = 0xB6000
-    RAM (rwx) : ORIGIN = 0x20050000, LENGTH = 0x40000
+    RAM (rwx) : ORIGIN = 0x20050000, LENGTH = 0x30000
 }
 
 SECTIONS
@@ -9,7 +9,6 @@ SECTIONS
     .text :
     {
         _start_text = .;
-        . = ALIGN(8);
         KEEP(*(.isr_vector))
         . = ALIGN(8);
         *(.init)

@@ -85,7 +85,7 @@ extern uint32_t SystemCoreClock;
  *----------------------------------------------------------*/
 
 
-#define configENABLE_FPU 1
+#define configENABLE_FPU 0
 #define configENABLE_MPU 0
 #define configENABLE_TRUSTZONE 0
 
@@ -195,7 +195,7 @@ standard names. */
 #define xPortSysTickHandler SysTick_Handler
 
 /* Tasks.c additions (e.g. Thread Aware Debug capability) */
-#define configINCLUDE_FREERTOS_TASK_C_ADDITIONS_H 1
+#define configINCLUDE_FREERTOS_TASK_C_ADDITIONS_H 0
 
 
 #endif /* FREERTOS_CONFIG_H */

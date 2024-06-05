@@ -16,7 +16,7 @@ CFLAGS+=-ICMSIS/Include
 CFLAGS+=-ICMSIS/Device/ST/STM32H5xx/Include
 
 # FPU
-CFLAGS+=-mfloat-abi=hard -mfpu=fpv4-sp-d16
+#CFLAGS+=-mfloat-abi=hard -mfpu=fpv4-sp-d16
 
 CFLAGS+=-DSTM32H563xx
 
